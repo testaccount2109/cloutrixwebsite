@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloutrix Live Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background: radial-gradient(circle at top center, #1a1a2e 0%, #05070f 100%);
+            color: white;
+            text-align: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .credit {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+        }
+        .credit b { color: #a855ff; text-shadow: 0 0 10px rgba(168, 85, 255, 0.5); }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(90deg, rgba(120, 0, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(rgba(0, 120, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            z-index: -1;
+        }
+
+        .title {
+            font-size: 80px;
+            margin-top: 60px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #2aa9ff, #a855ff, #ff00ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 10px 30px rgba(168, 85, 255, 0.3);
+            letter-spacing: -4px;
+            animation: flow 5s linear infinite;
+        }
+        @keyframes flow { to { background-position: 200% center; } }
+
+        .counter-box {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .counter-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .number {
+            display: block;
+            font-size: 50px;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .chart-container {
+            width: 90%;
+            max-width: 850px;
+            margin: 40px auto;
+            background: rgba(15, 20, 45, 0.4);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        h3 { margin-bottom: 20px; color: #555; text-transform: uppercase; font-size: 10px; letter-spacing: 4px; }
+
+        .links { 
+            margin-top: 50px;
+            margin-bottom: 80px; 
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .link-btn {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 28px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #aaa;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .btn-icon { width: 6px; height: 6px; background: currentColor; }
+        .yt-btn { color: #ff4444; }
+        .tw-btn { color: #a855ff; }
+        .dc-btn { color: #5865F2; }
+        .clip-btn { color: #00ffcc; border-color: rgba(0, 255, 204, 0.3); }
+
+        .link-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; transform: translateY(-3px); border-color: currentColor; }
+
+        /* --- CLIP OVERLAY --- */
+        #clipOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 7, 15, 0.95);
+            backdrop-filter: blur(25px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .overlay-content {
+            width: 90%;
+            max-width: 1100px;
+            height: 85vh;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 25px; right: 25px;
+            background: none; border: none; color: #555;
+            font-size: 40px; cursor: pointer; transition: 0.3s;
+        }
+        .close-btn:hover { color: #fff; }
+
+        .upload-area {
+            background: rgba(0, 255, 204, 0.03);
+            border: 1px dashed rgba(0, 255, 204, 0.2);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+        }
+
+        .upload-area input {
+            background: #0b0f22; border: 1px solid #1a1a2e;
+            color: white; padding: 12px; border-radius: 6px; margin: 5px;
+            outline: none;
+        }
+
+        .clip-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            padding-bottom: 40px;
+        }
+
+        .clip-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: 0.3s;
+            text-align: left;
+        }
+        .clip-card:hover { border-color: #00ffcc; transform: scale(1.02); }
+
+        .clip-card video { width: 100%; border-radius: 8px; margin-bottom: 10px; background: #000; }
+        .clip-info { font-size: 11px; color: #777; letter-spacing: 1px; text-transform: uppercase; }
+        .clip-info b { color: #00ffcc; }
+
+    </style>
+</head>
+<body>
+
+    <div class="credit">GELIEFERT VON <b>B3NNI</b> (BESTER MOD)</div>
+
+    <div class="title">Cloutrix</div>
+
+    <div class="counter-box">
+        <div class="counter-item">SUBSCRIBERS<br><span class="number" id="yt">...</span></div>
+        <div class="counter-item">FOLLOWERS<br><span class="number" id="twitch">...</span></div>
+    </div>
+
+    <div class="chart-container"><h3>DATA STREAM // YOUTUBE</h3><canvas id="ytChart"></canvas></div>
+    <div class="chart-container"><h3>DATA STREAM // TWITCH</h3><canvas id="twitchChart"></canvas></div>
+
+    <div class="links">
+        <a class="link-btn yt-btn" href="https://www.youtube.com/@CloutrixGaming" target="_blank"><span class="btn-icon"></span> YouTube</a>
+        <a class="link-btn tw-btn" href="https://www.twitch.tv/cloutrix_gaming" target="_blank"><span class="btn-icon"></span> Twitch</a>
+        <a class="link-btn dc-btn" href="https://discord.gg/NYZ3TtqhNn" target="_blank"><span class="btn-icon"></span> Discord</a>
+        <button class="link-btn clip-btn" onclick="openClips()"><span class="btn-icon"></span> COMMUNITY CLIPS</button>
+    </div>
+
+    <div id="clipOverlay">
+        <div class="overlay-content">
+            <button class="close-btn" onclick="closeClips()">&times;</button>
+            <h2 style="letter-spacing: 8px; font-weight: 900; margin-bottom: 30px;">CLIPS_ARCHIVE</h2>
+            
+            <div class="upload-area">
+                <input type="text" id="uploaderName" placeholder="DEIN_NAME">
+                <input type="file" id="clipFile" accept="video/*">
+                <button class="link-btn clip-btn" style="display:inline-flex; margin-left:10px;" onclick="uploadClip()">UPLOAD_START</button>
+                <p id="statusText" style="font-size: 10px; margin-top: 15px; color: #555;"></p>
+            </div>
+
+            <div class="clip-grid" id="clipGrid"></div>
+        </div>
+    </div>
+
+<script>
+    // --- KONFIGURATION (HIER DATEN EINTRAGEN) ---
+    const YT_API_KEY = "AIzaSyB0y6K88sVvDPKzg11VV6fyuNaFjlwjqsQ"; 
+    const YT_CHANNEL_ID = "UCDab9vqB8pL_Go4bAOvRinw"; 
+    const TW_CLIENT_ID = "j3sicc8iwn1g6endbo8qz9qwmfe0cs"; 
+    const TW_SECRET = "offf8f1q0sk79s8prq1uiwf9n3t5k3"; 
+    const TW_USER = "cloutrix_gaming";
+
+    // Discord Daten
+    const DISCORD_WEBHOOK = "https://discord.com/api/webhooks/1481283217498837002/zoOrFCCkA_uboPK4yOzyKoQ6eC9Ok74wOCtLIpr3htMzEI53A_30RO8nXKvfBKYNu5wa";
+    const DISCORD_BOT_TOKEN = "MTQ4MTI3NTMyMDQxMjY3MjExMA.G27VGP.kK2o2g303-Iqabjxn_wumnnV73X-xK92Y4ZKtg";
+    const DISCORD_CHANNEL_ID = "1481277178183421982";
+
+    // --- CLIP LOGIK ---
+    function openClips() {
+        document.getElementById('clipOverlay').style.display = 'flex';
+        loadClipsFromDiscord();
+    }
+
+    function closeClips() {
+        document.getElementById('clipOverlay').style.display = 'none';
+    }
+
+    async function uploadClip() {
+        const fileInput = document.getElementById('clipFile');
+        const file = fileInput.files[0];
+        const name = document.getElementById('uploaderName').value;
+        const status = document.getElementById('statusText');
+
+        if(!file || !name) return alert("NAME & DATEI FEHLT!");
+        
+        // 25MB LIMIT CHECK
+        if(file.size > 25 * 1024 * 1024) {
+            status.innerText = "ERROR: FILE_TOO_LARGE_MAX_25MB";
+            status.style.color = "#ff4444";
+            return;
+        }
+
+        status.style.color = "#00ffcc";
+        status.innerText = "UPLOADING_TO_DISCORD_DATABASE...";
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("payload_json", JSON.stringify({ content: `CLIP_BY: **${name}**` }));
+
+        try {
+            await fetch(DISCORD_WEBHOOK, { method: "POST", body: formData });
+            status.innerText = "UPLOAD_COMPLETE. RELOADING ARCHIVE...";
+            fileInput.value = "";
+            setTimeout(loadClipsFromDiscord, 2000);
+        } catch(e) { status.innerText = "CONNECTION_ERROR."; }
+    }
+
+    async function loadClipsFromDiscord() {
+        const grid = document.getElementById('clipGrid');
+        grid.innerHTML = "<p>SCANNING_DISCORD_FILES...</p>";
+
+        try {
+            const res = await fetch(`https://discord.com/api/v10/channels/${DISCORD_CHANNEL_ID}/messages?limit=50`, {
+                headers: { "Authorization": `Bot ${DISCORD_BOT_TOKEN}` }
+            });
+            const messages = await res.json();
+            grid.innerHTML = "";
+            
+            messages.forEach(msg => {
+                if(msg.attachments) {
+                    msg.attachments.forEach(att => {
+                        if(att.content_type && att.content_type.startsWith("video")) {
+                            const uploader = msg.content.replace("CLIP_BY: **", "").replace("**", "") || "Unknown";
+                            const card = document.createElement('div');
+                            card.className = 'clip-card';
+                            card.innerHTML = `<video src="${att.url}" controls></video><div class="clip-info">SOURCE: <b>${uploader}</b></div>`;
+                            grid.appendChild(card);
+                        }
+                    });
+                }
+            });
+        } catch(e) { grid.innerHTML = "<p>ERROR_LOADING_ARCHIVE.</p>"; }
+    }
+
+    // --- STATS & CHART LOGIK ---
+    let twitchToken = "";
+    const labels = []; const ytHistory = []; const twHistory = [];
+    const chartOptions = {
+        responsive: true, plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: '#333' }, grid: { display: false } },
+            y: { ticks: { color: '#333' }, grid: { color: 'rgba(255,255,255,0.02)' } }
+        },
+        elements: { point: { radius: 0 } }
+    };
+
+    const ytChart = new Chart(document.getElementById('ytChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ data: ytHistory, borderColor: '#2aa9ff', borderWidth: 3, backgroundColor: 'rgba(42, 169, 255, 0.1)', fill: true, tension: 0.4 }] },
+        options: chartOptions
+    });
+
+    const twChart = new Chart(document.getElementById('twitchChart'), {
+        type: 'line',
+        data: { labels, datasets: [{ data: twHistory, borderColor: '#a855ff', borderWidth: 3, backgroundColor: 'rgba(168, 85, 255, 0.1)', fill: true, tension: 0.4 }] },
+        options: chartOptions
+    });
+
+    async function update() {
+        if (!twitchToken) {
+            const res = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${TW_CLIENT_ID}&client_secret=${TW_SECRET}&grant_type=client_credentials`, { method: 'POST' });
+            const data = await res.json(); twitchToken = data.access_token;
+        }
+        try {
+            const ytRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${YT_CHANNEL_ID}&key=${YT_API_KEY}`);
+            const ytData = await ytRes.json();
+            const yt = parseInt(ytData.items[0].statistics.subscriberCount);
+
+            const userRes = await fetch(`https://api.twitch.tv/helix/users?login=${TW_USER}`, { headers: { 'Client-ID': TW_CLIENT_ID, 'Authorization': `Bearer ${twitchToken}` } });
+            const userData = await userRes.json();
+            const fRes = await fetch(`https://api.twitch.tv/helix/channels/followers?broadcaster_id=${userData.data[0].id}`, { headers: { 'Client-ID': TW_CLIENT_ID, 'Authorization': `Bearer ${twitchToken}` } });
+            const fData = await fRes.json();
+            const tw = fData.total;
+
+            document.getElementById("yt").innerText = yt.toLocaleString();
+            document.getElementById("twitch").innerText = tw.toLocaleString();
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            labels.push(time); ytHistory.push(yt); twHistory.push(tw);
+            if (labels.length > 20) { labels.shift(); ytHistory.shift(); twHistory.shift(); }
+            ytChart.update('none'); twChart.update('none');
+        } catch(e) {}
+    }
+
+    setInterval(update, 10000); update();
+</script>
+</body>
+</html>
